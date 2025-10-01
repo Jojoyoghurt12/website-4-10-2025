@@ -1,24 +1,14 @@
+// app/api/upload/video/route.ts
 import { google } from "googleapis";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    // Add request body parsing with error handling
-    let body;
-    try {
-      body = await req.json();
-    } catch (parseError) {
-      console.error("Failed to parse request body:", parseError);
-      return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
-    }
-
-    const { filename, mimeType, fileSize } = body;
-
-    // Validate required fields
-    if (!filename || !mimeType) {
-      return NextResponse.json({ 
-        error: "Missing required fields: filename and mimeType are required" 
-      }, { status: 400 });
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
     // Check environment variables
@@ -27,17 +17,13 @@ export async function POST(req: NextRequest) {
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
     if (!privateKey || !clientEmail || !folderId) {
-      console.error("Missing environment variables:", {
-        hasPrivateKey: !!privateKey,
-        hasClientEmail: !!clientEmail,
-        hasFolderId: !!folderId
-      });
+      console.error("Missing environment variables");
       return NextResponse.json({ 
         error: "Missing Google credentials or folder ID" 
       }, { status: 500 });
     }
 
-    console.log(`Creating resumable upload for: ${filename} (${fileSize ? (fileSize / 1024 / 1024).toFixed(2) + 'MB' : 'unknown size'})`);
+    console.log(`Uploading: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
     const auth = new google.auth.GoogleAuth({
       credentials: {
@@ -47,100 +33,89 @@ export async function POST(req: NextRequest) {
       scopes: ["https://www.googleapis.com/auth/drive.file"],
     });
 
-    // Get the auth client with access token
     const authClient = await auth.getClient();
     const accessToken = (await authClient.getAccessToken()).token;
 
     if (!accessToken) {
-      console.error("Failed to get access token from Google Auth");
       return NextResponse.json({ error: "Failed to get access token" }, { status: 500 });
     }
 
-    console.log("Successfully got access token, initiating resumable upload...");
-
-    // Create headers for resumable upload
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json; charset=UTF-8",
-      "X-Upload-Content-Type": mimeType,
-    };
-
-    // Add content length if file size is provided
-    if (fileSize) {
-      headers["X-Upload-Content-Length"] = fileSize.toString();
-    }
-
-    // Initiate resumable upload session
-    const response = await fetch(
+    // Step 1: Initiate resumable upload
+    const initResponse = await fetch(
       `https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable`,
       {
         method: "POST",
-        headers,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json; charset=UTF-8",
+          "X-Upload-Content-Type": file.type,
+          "X-Upload-Content-Length": file.size.toString(),
+        },
         body: JSON.stringify({
-          name: filename,
+          name: file.name,
           parents: [folderId],
-          mimeType,
+          mimeType: file.type,
         }),
       }
     );
 
-    console.log(`Resumable upload initiation response: ${response.status} ${response.statusText}`);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Error initiating resumable upload:", {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-      
-      // More specific error messages based on status codes
-      let errorMessage = `Failed to initiate upload: ${response.status} ${response.statusText}`;
-      
-      if (response.status === 401) {
-        errorMessage = "Authentication failed - check Google credentials";
-      } else if (response.status === 403) {
-        errorMessage = "Permission denied - check Google Drive folder permissions";
-      } else if (response.status === 404) {
-        errorMessage = "Google Drive folder not found - check folder ID";
-      }
-      
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
+    if (!initResponse.ok) {
+      const errorText = await initResponse.text();
+      console.error("Error initiating upload:", errorText);
+      return NextResponse.json({ 
+        error: `Failed to initiate upload: ${initResponse.statusText}` 
+      }, { status: initResponse.status });
     }
 
-    const uploadUrl = response.headers.get("location");
-
+    const uploadUrl = initResponse.headers.get("location");
     if (!uploadUrl) {
-      console.error("No upload URL returned from Google Drive API");
-      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
-      return NextResponse.json({ error: "No upload URL returned from Google Drive" }, { status: 500 });
+      return NextResponse.json({ 
+        error: "No upload URL returned" 
+      }, { status: 500 });
     }
 
-    console.log("Successfully created resumable upload URL");
-    return NextResponse.json({ 
-      uploadUrl,
-      message: `Resumable upload URL created for ${filename}`
+    console.log("Upload session created, uploading file...");
+
+    // Step 2: Upload the file through the backend (this fixes CORS)
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type,
+        "Content-Length": file.size.toString(),
+      },
+      body: fileBuffer,
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error("Error uploading file:", errorText);
+      return NextResponse.json({ 
+        error: `Upload failed: ${uploadResponse.statusText}` 
+      }, { status: uploadResponse.status });
+    }
+
+    const result = await uploadResponse.json();
+    console.log("Upload successful:", result.id);
+
+    return NextResponse.json({
+      success: true,
+      fileId: result.id,
+      fileName: result.name,
+      mimeType: result.mimeType,
+      size: result.size,
+      webViewLink: result.webViewLink,
+      message: "File uploaded successfully"
     });
 
   } catch (err: any) {
-    console.error("Unexpected error in video upload route:", {
-      message: err.message,
-      stack: err.stack,
-      name: err.name
-    });
-    
-    // More specific error handling
-    let errorMessage = "Unexpected server error";
-    
-    if (err.code === 'ENOTFOUND') {
-      errorMessage = "Network error - unable to reach Google Drive API";
-    } else if (err.message?.includes('timeout')) {
-      errorMessage = "Request timeout - Google Drive API is slow to respond";
-    } else if (err.message) {
-      errorMessage = `Server error: ${err.message}`;
-    }
-    
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    console.error("Upload error:", err);
+    return NextResponse.json({ 
+      error: err.message || "Unexpected server error" 
+    }, { status: 500 });
   }
 }
+
+// Optional: Keep your existing video-url route for two-step uploads
+// But add this endpoint to handle the actual upload proxy
