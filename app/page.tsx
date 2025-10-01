@@ -1,3 +1,5 @@
+// Updated page.tsx with chunked photo uploads
+
 "use client"
 
 import React, { useRef, useState } from "react";
@@ -238,10 +240,12 @@ export default function Page() {
   };
 
   return (
-    <div className="p-6 w-[360px] mx-auto">
-      <h1 className="garamond-title box-text text-2xl text-center">
+    <div className="relative min-h-[100vh]p-6 w-[360px] mx-auto">
+      <h1 className="garamond-title box-text text-2xl text-center mb-20 mt-14 ">
         Mirova 50tka
       </h1>
+      
+      
       
       {/* Camera Controls */}
       <div className="flex flex-wrap gap-3 justify-center mb-4">
