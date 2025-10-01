@@ -15,30 +15,37 @@
 
 
 html, body, #root {
-  --background: #5f0909 !important;  min-height: 100vh;
+  --background: #000000 !important;  min-height: 100vh;
 }
 
 /* Ensure it works in both color scheme preferences */
 @media (prefers-color-scheme: light) {
   html, body, #root {
-  --background: #5f0909 !important;  }
+  --background: #000000 !important;  }
 }
 
 @media (prefers-color-scheme: dark) {
   html, body, #root {
-    --background: #5f0909 !important;
+    --background: #000000  !important;
   }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --foreground: #edc160; /* Font colour of the foreground? */
+    --foreground: #f4c726; /* Font colour of the foreground? */
   }
 }
 @media (prefers-color-scheme: light) {
   :root {
-    --foreground: #edc160; /* Font colour of the foreground? */
+    --foreground: #f4c726; /* Font colour of the foreground? */
   }
+}
+
+@font-face {
+  font-family: 'Flagflies';
+  src: url('/Flagfies.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
 }
 
 body {
@@ -48,6 +55,7 @@ body {
 }
 
 .box-title {
+  margin-top: 40px;
   padding: 2 4px;
   border-radius: 10px;
   border-style: solid;
@@ -55,71 +63,80 @@ body {
   border-color: #edc160;
   background-color: #8f4806;
   max-width: 360px;
-  position: relative
+  position: relative;
+  z-index: 1;
 }
 .garamond-title {
-  font-family: var(--font-eb-garamond);
-  font-weight: 500;
+  font-family: "Flagflies", serif;
+  font-weight: 200;
   color: #edc160;
   font-size: x-large;
-  text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25)
+  text-shadow: 2px 2px 2px #8f3c72;
+  z-index: 1;
 }
 .garamond {
-  font-family: var(--font-eb-garamond);
-  font-weight: 500;
-  color: #edc160;
+  font-family: "Flagflies", serif;
+  font-weight: 200;
+  color: #f4c726;
   font-size: large;
-  text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25)
+  text-shadow: 2px 2px 2px #8f3c72 
 }
 .box-text {
   padding: 2 4px;
   border-radius: 10px;
   border-style: solid;
   border-width: 1px;
-  border-color: #edc160;
-  background-color: #8f4806;
-  max-width: 360px
+  border-color: #80d9f4;
+  background-color: #cf79b4;
+  max-width: 360px;
+  z-index: 2;
 }
 .box {
   padding: 2 4px;
   border-radius: 10px;
   border-style: solid;
   border-width: 1px;
-  border-color: #edc160;
-  background-color: #8f4806 
+  border-color: #80d9f4;
+  background-color: #cf79b4; 
+  z-index: 1;
 }
 .box-loading {
   padding: 2 4px;
   border-radius: 10px;
   border-style: solid;
-  border-width: 1px;
-  border-color: #edc160;
-  background-color: gray 
+  border-width: 2px;
+  border-color: #80d9f4;
+  background-color: gray;
+  z-index: 1;
 }
 
 .box:hover:not(:disabled) {
-  background-color: white;
-  color: #8f4806
+  background-color: #67154c;
+  color: #f4c726
 }
 
-.gold-color { 
-  border-color: #edc160;
+.blue-color { 
+  border-color: #80d9f4;
 }
 
 .box:disabled {  
   background-color: gray;
   cursor: not-allowed;
   color: #ccc;
+  z-index: 1;
 }
-.border {
-  background-image: url("/border.png");
-  background-size: contain;
-  position: center;
-  margin-left: -7px;
+.background {
+  z-index: 0;
+  background-image: url("/background.jpg");
+  background-size: cover;
+  position: absolute;
   background-repeat: no-repeat;
-  width: 320px;
-  height: 150px;
-  border: none
+  background-position: center;
+  width: 50%;
+  height: 100%;
+  left: 50%;                  /* Center horizontally */
+  top: 0;
+  transform: translateX(-50%);
 }
 .photo {
   width: 100%;          /* or a fixed width, e.g. 300px */
@@ -127,10 +144,11 @@ body {
   height: auto;         /* keep aspect ratio */
   object-position: center; /* center the image */
   border-radius: 12px;  /* if you want rounded corners */
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  border: none;
+  box-shadow: 0 4px 6px #67154c;
+  border: 2px solid #80d9f4;
   padding-top: 10px;
-  margin-left: 1px
+  margin-left: -5px;
+  z-index: 1;
 }
 
 .circle_1 {
@@ -141,6 +159,7 @@ body {
   align-items: center;
   display: flex;
   justify-content: center;
+  z-index: 1;
 }
 .circle_1:hover:not(:disabled) {
   background-color: white;
@@ -157,4 +176,5 @@ body {
   border: solid;
   border-color: #213e9f;
   filter: invert(1);
+  z-index: 1;
 }

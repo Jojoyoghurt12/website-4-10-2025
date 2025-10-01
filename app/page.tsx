@@ -327,11 +327,12 @@ export default function Page() {
   };
 
   return (
-    <div className="p-6 w-[360px] mx-auto">
-      <h1 className="garamond-title box-text text-2xl text-center">
+    <div className="relative min-h-[100vh]p-6 w-[360px] mx-auto">
+      <h1 className="garamond-title box-text text-2xl text-center mb-20 mt-14 ">
         Oslava 50tky – Monika a Palo
       </h1>
-      <div className="border -ml-4" />
+      
+      
       
       {/* Camera Controls */}
       <div className="flex flex-wrap gap-3 justify-center mb-4">
@@ -415,7 +416,7 @@ export default function Page() {
         </button>
 
         <a
-          href="https://drive.google.com/drive/folders/1qjlwQb-vuyPcv2VkNh8x5B3vulErvNSu"
+          href="https://drive.google.com/drive/folders/1Feu4T54SDYag8V9n8FPPAfwyHtQpShkL?usp=share_link"
           target="_blank"
           rel="noopener noreferrer"
           className={`${
@@ -444,10 +445,10 @@ export default function Page() {
       )}
 
       {/* Unified File Upload */}
-      <div className="mt-6 border-t pt-4">
-        <div className="border-2 border-dashed gold-color rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+      <div className="mt-6 border-t blue-color pt-4">
+        <div className="border-2 border-dashed blue-color rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
           <Upload className="mx-auto mb-4" size={32} />
-          <label className="cursor-pointer gold-color">
+          <label className="cursor-pointer blue-color">
             <span className="garamond box-text px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900">
               Nahraj fotky a videá
             </span>

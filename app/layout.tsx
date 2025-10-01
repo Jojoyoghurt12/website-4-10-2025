@@ -32,7 +32,9 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${eBGaramond.variable} antialiased`}
-      >
+        >
+        <div className='background' />
+      
         {children}
       </body>
     </html>
