@@ -1,17 +1,6 @@
-// app/api/upload/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { Readable } from "stream";
-console.log("GOOGLE_CLIENT_EMAIL:", process.env.GOOGLE_CLIENT_EMAIL);
-console.log("GOOGLE_PRIVATE_KEY:", process.env.GOOGLE_PRIVATE_KEY?.slice(0, 20));
-
-
-export const config = {
-  api: {
-    bodyParser: true, // enable default parser since we're accepting JSON now
-  },
-};
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,8 +14,7 @@ export async function POST(req: NextRequest) {
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64Data, "base64");
 
-    // Setup Google Drive auth using environment variables
-    // Handle the private key properly - replace \\n with actual newlines
+    // Setup Google Drive auth
     const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
     
     if (!privateKey || !process.env.GOOGLE_CLIENT_EMAIL) {
