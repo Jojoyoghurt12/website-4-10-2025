@@ -329,7 +329,7 @@ export default function Page() {
   return (
     <div className="relative min-h-[100vh]p-6 w-[360px] mx-auto">
       <h1 className="garamond-title box-text text-2xl text-center mb-20 mt-14 ">
-        Oslava 50tky – Monika a Palo
+        Mirova 50tka
       </h1>
       
       
