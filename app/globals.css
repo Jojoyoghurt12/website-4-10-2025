@@ -126,17 +126,18 @@ body {
   z-index: 1;
 }
 .background {
+  .background {
   z-index: 0;
   background-image: url("/background.jpg");
-  background-size: contain;
-  position: absolute;
+  background-size: auto 100%; /* ✅ CHANGED: Height 100%, width auto */
+  position: fixed; /* ✅ CHANGED: Fixed instead of absolute */
   background-repeat: no-repeat;
-  background-position: center;
-  width: 50%;
-  height: 100%;
-  left: 50%;                  /* Center horizontally */
+  background-position: center center; /* ✅ CHANGED: Center both ways */
+  width: 100vw; /* ✅ CHANGED: Full viewport width */
+  height: 100vh; /* ✅ CHANGED: Full viewport height */
+  left: 0; /* ✅ CHANGED: Start from left edge */
   top: 0;
-  transform: translateX(-50%);
+  transform: none; /* ✅ CHANGED: No transform needed */
 }
 .photo {
   width: 100%;          /* or a fixed width, e.g. 300px */
