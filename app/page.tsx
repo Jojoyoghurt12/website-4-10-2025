@@ -53,17 +53,62 @@ export default function Page() {
     setCameraStarted(false);
   };
 
-  // OPTION 1: Single-step upload via backend (RECOMMENDED - NO CORS)
-  const uploadViaSingleStep = async (file: File, fileId: string): Promise<any> => {
-    console.log("=== CLIENT: Starting single-step upload ===");
+  // OPTION 1A: Single-step upload for IMAGES
+  const uploadImageViaSingleStep = async (file: File, fileId: string): Promise<any> => {
+    console.log("=== CLIENT: Starting image upload ===");
+    console.log(`File: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+    
+    setUploadProgress(prev => ({ ...prev, [fileId]: 5 }));
+
+    // Convert file to base64
+    const reader = new FileReader();
+    const base64Promise = new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    
+    const imageBase64 = await base64Promise;
+    setUploadProgress(prev => ({ ...prev, [fileId]: 30 }));
+
+    console.log("Sending image to backend...");
+    
+    const response = await fetch('/api/upload/photo', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imageBase64 }),
+    });
+
+    console.log(`Backend response: ${response.status} ${response.statusText}`);
+    setUploadProgress(prev => ({ ...prev, [fileId]: 80 }));
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Upload failed:", error);
+      throw new Error(error.error || 'Upload failed');
+    }
+
+    const result = await response.json();
+    console.log("✓ Upload successful:", result);
+    console.log("=== CLIENT: Image upload completed ===");
+    
+    setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
+    return result;
+  };
+
+  // OPTION 1B: Single-step upload for VIDEOS
+  const uploadVideoViaSingleStep = async (file: File, fileId: string): Promise<any> => {
+    console.log("=== CLIENT: Starting video upload ===");
     console.log(`File: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
     
     setUploadProgress(prev => ({ ...prev, [fileId]: 5 }));
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('video', file); // Important: must be 'video', not 'file'
 
-    console.log("Sending file to backend...");
+    console.log("Sending video to backend...");
     
     const response = await fetch('/api/upload/video', {
       method: 'POST',
@@ -81,7 +126,7 @@ export default function Page() {
 
     const result = await response.json();
     console.log("✓ Upload successful:", result);
-    console.log("=== CLIENT: Upload completed ===");
+    console.log("=== CLIENT: Video upload completed ===");
     
     setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
     return result;
@@ -181,7 +226,7 @@ export default function Page() {
       
       // Use single-step for small files (< 5MB), two-step for larger
       if (file.size < 5 * 1024 * 1024) {
-        await uploadViaSingleStep(file, fileId);
+        await uploadImageViaSingleStep(file, fileId);
       } else {
         await uploadViaTwoStep(file, fileId);
       }
@@ -290,7 +335,7 @@ export default function Page() {
             const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
             
             // Upload via backend (single-step for images)
-            await uploadViaSingleStep(compressedFile, fileId);
+            await uploadImageViaSingleStep(compressedFile, fileId);
             
             console.log(`✓ Successfully uploaded image: ${file.name}`);
 
@@ -308,7 +353,7 @@ export default function Page() {
             // Single-step for small files (< 50MB), two-step for larger
             if (file.size < 50 * 1024 * 1024) {
               console.log("Using single-step upload (small file)");
-              await uploadViaSingleStep(file, fileId);
+              await uploadVideoViaSingleStep(file, fileId);
             } else {
               console.log("Using two-step upload (large file)");
               await uploadViaTwoStep(file, fileId);
@@ -336,7 +381,6 @@ export default function Page() {
     await Promise.all(uploadTasks);
     console.log('=== All uploads completed ===');
   };
-
   return (
     <div className="relative min-h-[100vh]p-6 w-[360px] mx-auto">
       <h1 className="garamond-title box-text text-2xl text-center mb-20 mt-14 ">
