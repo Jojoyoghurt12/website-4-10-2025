@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
         mimeType: "image/png",
         body: Readable.from(buffer),
       },
+      // ✅ CRITICAL: Enable Shared Drive support
+      supportsAllDrives: true,
     });
 
     return NextResponse.json({ fileId: uploadResponse.data.id }, { status: 200 });
