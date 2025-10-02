@@ -126,7 +126,6 @@ body {
   z-index: 1;
 }
 .background {
-  .background {
   z-index: 0;
   background-image: url("/background.jpg");
   background-size: auto 100%; /* ✅ CHANGED: Height 100%, width auto */
