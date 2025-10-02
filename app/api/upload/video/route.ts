@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     console.log("=== VIDEO UPLOAD REQUEST RECEIVED ===");
     
     const formData = await req.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('video') as File; // ✅ FIXED: Changed from 'file' to 'video'
     
     if (!file) {
       console.error("No file provided in request");
@@ -35,8 +35,6 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("Environment variables verified");
-    console.log(`Target folder ID: ${folderId}`);
-    console.log(`Service account: ${clientEmail}`);
 
     const auth = new google.auth.GoogleAuth({
       credentials: {
@@ -46,17 +44,17 @@ export async function POST(req: NextRequest) {
       scopes: ["https://www.googleapis.com/auth/drive.file"],
     });
 
-    console.log("Google Auth initialized, getting access token...");
+    console.log("Getting access token...");
     
     const authClient = await auth.getClient();
     const accessToken = (await authClient.getAccessToken()).token;
 
     if (!accessToken) {
-      console.error("Failed to get access token from Google Auth");
+      console.error("Failed to get access token");
       return NextResponse.json({ error: "Failed to get access token" }, { status: 500 });
     }
 
-    console.log("Access token obtained successfully");
+    console.log("✓ Access token obtained");
 
     // Step 1: Initiate resumable upload
     console.log("Initiating resumable upload session...");
@@ -79,50 +77,37 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    console.log(`Resumable upload initiation response: ${initResponse.status} ${initResponse.statusText}`);
+    console.log(`Init response: ${initResponse.status} ${initResponse.statusText}`);
 
     if (!initResponse.ok) {
       const errorText = await initResponse.text();
-      console.error("Error initiating resumable upload:", {
-        status: initResponse.status,
-        statusText: initResponse.statusText,
-        errorText,
-        headers: Object.fromEntries(initResponse.headers.entries())
-      });
+      console.error("Error initiating upload:", errorText);
       
-      let errorMessage = `Failed to initiate upload: ${initResponse.status} ${initResponse.statusText}`;
+      let errorMessage = `Failed to initiate upload: ${initResponse.status}`;
       
       if (initResponse.status === 401) {
         errorMessage = "Authentication failed - check Google credentials";
       } else if (initResponse.status === 403) {
-        errorMessage = "Permission denied - check Google Drive folder permissions";
+        errorMessage = "Permission denied - check folder permissions";
       } else if (initResponse.status === 404) {
-        errorMessage = "Google Drive folder not found - check folder ID";
+        errorMessage = "Folder not found - check folder ID";
       }
       
-      return NextResponse.json({ 
-        error: errorMessage 
-      }, { status: initResponse.status });
+      return NextResponse.json({ error: errorMessage }, { status: initResponse.status });
     }
 
     const uploadUrl = initResponse.headers.get("location");
     if (!uploadUrl) {
-      console.error("No upload URL returned from Google Drive API");
-      console.log("Response headers:", Object.fromEntries(initResponse.headers.entries()));
-      return NextResponse.json({ 
-        error: "No upload URL returned" 
-      }, { status: 500 });
+      console.error("No upload URL returned");
+      return NextResponse.json({ error: "No upload URL returned" }, { status: 500 });
     }
 
-    console.log("✓ Resumable upload session created successfully");
-    console.log(`Upload URL: ${uploadUrl.substring(0, 100)}...`);
+    console.log("✓ Upload session created");
 
-    // Step 2: Upload the file through the backend (this fixes CORS)
-    console.log("Converting file to buffer...");
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    console.log(`Buffer created: ${fileBuffer.length} bytes`);
-    
+    // Step 2: Upload the file from the SERVER (this avoids CORS!)
     console.log("Uploading file to Google Drive...");
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    
     const uploadResponse = await fetch(uploadUrl, {
       method: "PUT",
       headers: {
@@ -136,12 +121,7 @@ export async function POST(req: NextRequest) {
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      console.error("Error uploading file:", {
-        status: uploadResponse.status,
-        statusText: uploadResponse.statusText,
-        errorText,
-        headers: Object.fromEntries(uploadResponse.headers.entries())
-      });
+      console.error("Error uploading file:", errorText);
       return NextResponse.json({ 
         error: `Upload failed: ${uploadResponse.statusText}` 
       }, { status: uploadResponse.status });
@@ -149,46 +129,22 @@ export async function POST(req: NextRequest) {
 
     const result = await uploadResponse.json();
     console.log("✓ Upload successful!");
-    console.log("File details:", {
-      fileId: result.id,
-      fileName: result.name,
-      mimeType: result.mimeType,
-      size: result.size,
-      webViewLink: result.webViewLink
-    });
-    console.log("=== VIDEO UPLOAD COMPLETED SUCCESSFULLY ===");
+    console.log("File ID:", result.id);
+    console.log("=== VIDEO UPLOAD COMPLETED ===");
 
     return NextResponse.json({
       success: true,
       fileId: result.id,
       fileName: result.name,
-      mimeType: result.mimeType,
-      size: result.size,
-      webViewLink: result.webViewLink,
       message: "File uploaded successfully"
     });
 
   } catch (err: any) {
-    console.error("=== UNEXPECTED ERROR IN VIDEO UPLOAD ===");
-    console.error("Error details:", {
-      message: err.message,
-      stack: err.stack,
-      name: err.name,
-      code: err.code
-    });
-    
-    let errorMessage = "Unexpected server error";
-    
-    if (err.code === 'ENOTFOUND') {
-      errorMessage = "Network error - unable to reach Google Drive API";
-    } else if (err.message?.includes('timeout')) {
-      errorMessage = "Request timeout - Google Drive API is slow to respond";
-    } else if (err.message) {
-      errorMessage = `Server error: ${err.message}`;
-    }
+    console.error("=== UPLOAD ERROR ===");
+    console.error("Error:", err.message);
     
     return NextResponse.json({ 
-      error: errorMessage 
+      error: err.message || "Unexpected server error" 
     }, { status: 500 });
   }
 }
