@@ -128,7 +128,7 @@ body {
 .background {
   z-index: 0;
   background-image: url("/background.jpg");
-  background-size: cover;
+  background-size: contain;
   position: absolute;
   background-repeat: no-repeat;
   background-position: center;
